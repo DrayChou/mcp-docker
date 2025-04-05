@@ -5,6 +5,9 @@ RUN apt-get update && apt-get install -y curl gnupg git
 RUN curl -sfLS https://install-node.vercel.app/lts | FORCE=true bash
 
 WORKDIR /app
+ENV UV_CACHE_DIR=/app/cache/uv
+ENV npm_config_cache=/app/cache/npm
+
 RUN uvx mcpo --help \
     && npx -y supergateway --help \
     && npx -y @metamcp/mcp-server-metamcp@latest --help
