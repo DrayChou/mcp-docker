@@ -10,4 +10,5 @@ ENV npm_config_cache=/app/cache/npm
 
 RUN uvx mcpo --help \
     && npx -y supergateway --help \
+    && npx -y @modelcontextprotocol/inspector --help \
     && npx -y @metamcp/mcp-server-metamcp@latest --help
