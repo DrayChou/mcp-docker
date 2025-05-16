@@ -1,55 +1,76 @@
 ![./assets/tools.png](./assets/tools.png)
 
-Docker image for installing and running tools for LLM agents (MCP, OpenAPI, UVX, NPX, Python)
+# mcp-docker
 
-### Features
+Docker image for running tools for LLM agents (MCP, OpenAPI, UVX, NPX, Python)
 
-- Python / Node.js runtime - includes `python`, `node`, `uvx`, `npx`
-- Includes extra packages for managing MCP/OpenAPI tools and connections
-  - [`mcpo`](https://github.com/open-webui/mcpo) - MCP to OpenAPI bridge
-  - [`supergateway`](https://github.com/supercorp-ai/supergateway) - MCP STDIO/SSE bridge
-  - [`@modelcontextprotocol/inspector`](https://github.com/modelcontextprotocol/inspector) - debugging tool for MCP
-- Utils: `curl`, `jq`, `git`
-- Easy unified cache at `/app/cache` for all tools
+## Features
 
-### Usage
+- Python / Node.js runtime (`python`, `node`, `uvx`, `npx`)
+- 工具类：`curl`, `jq`, `git`
+- 统一的缓存目录 `/app/cache`
+- 适合运行各种 MCP 生态单个服务，轻量灵活
+
+## 适用场景
+
+本镜像不再内嵌 mcpo、supergateway 等服务，适用于拉起各种 MCP 单体服务。你可以用 npx/uvx 运行任何符合 MCP 生态的服务。
+
+## 使用方法
+
+### 1. 构建镜像
+
+在本项目目录下执行：
 
 ```bash
-# Launch MCP tools in stdio mode
-docker run ghcr.io/av/tools uvx mcp-server-time
-
-# Bridge from MCP to OpenAPI
-docker run -p 8000:8000 ghcr.io/av/tools uvx mcpo -- uvx mcp-server-time --local-timezone=America/New_York
-# http://0.0.0.0:8000/docs -> see endpoint documentation
-
-# Run MCP inspector
-docker run -p 6274:6274 -p 6277:6277 ghcr.io/av/tools npx @modelcontextprotocol/inspector
-
-# Persist the cache volume for quick restarts
-# -v cache:/app/cache - named docker volume
-# -v /path/to/my/cache:/app/cache - cache on the host
-docker run -v cache:/app/cache ghcr.io/av/tools uvx mcp-server-time
+docker build -t mcp-base .
 ```
 
-In docker compose:
+### 2. 运行 MCP 服务（以 MCP-SuperAssistant 为例）
+
+假设你要运行 [MCP-SuperAssistant](https://github.com/srbhptl39/MCP-SuperAssistant)：
+
+#### 方法一：直接运行
+
+```bash
+docker run --rm mcp-base npx @srbhptl39/mcp-superassistant
+```
+
+#### 方法二：进入容器后手动运行
+
+```bash
+docker run -it --rm mcp-base bash
+# 在容器内
+npx @srbhptl39/mcp-superassistant
+```
+
+### 3. 挂载缓存（推荐）
+
+加快 npx/uvx 工具和 node 包缓存速度：
+
+```bash
+docker run -v cache:/app/cache mcp-base npx @srbhptl39/mcp-superassistant
+```
+
+### 4. docker compose 示例
 
 ```yaml
 services:
-  time:
-    image: ghcr.io/av/tools
-    command: uvx mcp-server-time
+  superassistant:
+    image: mcp-base
+    command: npx @srbhptl39/mcp-superassistant
     volumes:
       - cache:/app/cache
+```
 
-  fetch:
-    image: ghcr.io/av/tools
-    command: uvx mcpo -- uvx mcp-server-fetch
-    ports:
-      - 7133:8000
-    volumes:
-      - cache:/app/cache
+## 自定义你的服务
+
+只需把 `npx 包名` 换成你想运行的 MCP 服务即可。例如：
+
+```bash
+docker run --rm mcp-base npx @your-mcp/some-service
 ```
 
 ---
 
-Check out [Harbor](https://github.com/av/harbor) for a complete dockerized LLM environment.
+如需将镜像推送到远端仓库（如 Docker Hub），只需将 `mcp-base` 替换为 `yourname/mcp-base`，相关命令一致。
+
